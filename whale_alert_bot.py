@@ -2,14 +2,16 @@
 import json
 import requests
 import websocket
+import threading
 import os
+from flask import Flask
 
-# ======= CONFIG FROM ENV VARIABLES =======
+# ======= CONFIG =======
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_USER_ID = os.environ.get("TELEGRAM_USER_ID")
 ETH_THRESHOLD = float(os.environ.get("ETH_THRESHOLD", 1000))
 
-# ======= TELEGRAM ALERT FUNCTION =======
+# ======= TELEGRAM ALERT =======
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_USER_ID, "text": message}
@@ -26,7 +28,7 @@ def on_message(ws, message):
         direction = "SELL 🟥" if is_sell else "BUY 🟩"
         total = price * quantity
         alert_msg = (
-            f"🚨 *Whale Trade Detected!*\n\n"
+            f"🚨 Whale Trade Detected!\n\n"
             f"📊 Direction: {direction}\n"
             f"💰 Amount: {quantity:.2f} ETH\n"
             f"💵 Value: ${total:,.2f}\n"
@@ -54,6 +56,13 @@ def run_ws():
     )
     ws.run_forever()
 
+# ======= FLASK APP FOR RENDER =======
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Whale Alert Bot is running!"
+
 if __name__ == "__main__":
-    print("🔍 Whale Alert Bot Running...")
-    run_ws()
+    threading.Thread(target=run_ws).start()
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
